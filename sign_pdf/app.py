@@ -270,6 +270,10 @@ def handle_error(error):
     return response
 
 # --- Main Execution (remains the same) ---
-if __name__ == '__main__':
+
+def main():
     ensure_upload_folder()
     app.run(debug=True)
+
+if __name__ == '__main__':
+    main()
