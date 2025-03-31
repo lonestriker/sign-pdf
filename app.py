@@ -193,38 +193,64 @@ def sign_pdf():
                     processed_signatures[sig_id] = processed_bytes
                     app.logger.info(f"Processed background for signature {sig_id}")
 
-
                 target_page = doc[page_num]
                 page_rect = target_page.rect
                 page_width_pt = page_rect.width
-                page_height_pt = page_rect.height
+                # CORRECTLY GET page_height_pt from page_rect
+                page_height_pt = page_rect.height # PDF page height in points
+                # REMOVED THE ERRONEOUS LINE: page_height_pt = page_height_pt
 
-                # Calculate scaling factors (using the single set of frontend rendered dims)
+                # Calculate scaling factors (remains the same)
                 scale_x = page_width_pt / page_w_px
                 scale_y = page_height_pt / page_h_px
 
-                # Calculate signature dimensions in points
+                # Calculate signature dimensions in points (remains the same)
                 sig_w_pt = sig_w_px * scale_x
                 sig_h_pt = sig_h_px * scale_y
 
-                # Calculate top-left position in points (PDF coordinates)
-                x_pt = x_px * scale_x
+                # --- *** TEST: ASSUME insert_image USES TOP-LEFT Y-ORIGIN *** ---
+
+                # Calculate the signature's top edge distance from the PDF page's top edge, in points.
                 y_pt_from_top = y_px * scale_y
 
-                # Define the rectangle for insertion (bottom-left origin)
-                x0 = x_pt
-                y1 = page_height_pt - y_pt_from_top
-                x1 = x0 + sig_w_pt
-                y0 = y1 - sig_h_pt
+                # Directly use this as the 'y0' coordinate, assuming insert_image uses it as the top edge.
+                y0_for_insert = y_pt_from_top
 
-                signature_rect = fitz.Rect(x0, y0, x1, y1)
+                # Calculate the 'y1' coordinate (bottom edge relative to top-left origin)
+                y1_for_insert = y0_for_insert + sig_h_pt
+
+                # --- *** END TEST CALCULATION *** ---
+
+                # Calculate X position in points (remains the same)
+                x0 = x_px * scale_x # Left edge
+                x1 = x0 + sig_w_pt   # Right edge
+
+                # Define the rectangle using the calculated values based on the hypothesis
+                signature_rect_for_insert = fitz.Rect(x0, y0_for_insert, x1, y1_for_insert)
+
+
+                # --- Add Logging ---
+                app.logger.debug(f"Placement {i} (SigID {sig_id}, Page {page_num}):")
+                app.logger.debug(f"  Input Pixels: x={x_px:.2f}, y={y_px:.2f}, w={sig_w_px:.2f}, h={sig_h_px:.2f}")
+                # ... (keep other debug logs) ...
+                app.logger.debug(f"  TEST CALC: y_pt_from_top={y_pt_from_top:.2f}")
+                app.logger.debug(f"  TEST CALC RECT for insert_image: {signature_rect_for_insert}")
+                # --- End Logging ---
+
+
+                # Clamp X coordinate, leave Y unclamped for this test
+                x0_clamped = max(0.0, min(x0, page_width_pt - sig_w_pt))
+                x1_clamped = x0_clamped + sig_w_pt
+                # Create the final rect using clamped X and the hypothesized Y values
+                final_rect_to_insert = fitz.Rect(x0_clamped, y0_for_insert, x1_clamped, y1_for_insert)
+                app.logger.info(f"Final Rect used for insertion (Top-Left Y hypothesis): {final_rect_to_insert}")
+
 
                 # Insert the PROCESSED signature image bytes
                 target_page.insert_image(
-                    signature_rect,
-                    stream=processed_signatures[sig_id] # Use the bytes
+                    final_rect_to_insert, # Use the rect calculated with the top-left Y hypothesis
+                    stream=processed_signatures[sig_id]
                 )
-                app.logger.info(f"Inserted signature {sig_id} onto page {page_num+1}")
 
             except (KeyError, ValueError, TypeError) as e:
                 app.logger.warning(f"Skipping placement {i} due to invalid data: {e}")
