@@ -1,6 +1,14 @@
 // --- Ensure PDF.js is loaded via module script in HTML ---
 // Access pdfjsLib from the window object if necessary (or import if script.js is also a module)
-const pdfjsLib = window.pdfjsLib;
+// const pdfjsLib = window.pdfjsLib;
+
+// --- Import PDF.js Library ---
+import * as pdfjsLib from './pdf.mjs';
+
+// --- Set Worker Source ---
+// Use a relative path assuming pdf.mjs is in the same /static/js/ directory
+pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.mjs';
+
 
 // --- Globals (DOM Elements) ---
 // Tabs
