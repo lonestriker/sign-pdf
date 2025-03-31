@@ -3,15 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Signature Tool - Tailwind</title>
+    <title>PDF Signature Tool - Multi-Tab</title>
     <!-- Include Tailwind CSS via Play CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Add custom base styles or component styles if needed */
-        /* For example, ensuring the viewer has a minimum height */
+        /* Custom styles if needed */
         #viewer { min-height: 400px; }
-        /* Style for the active signature highlight */
         #signature-gallery img.active-signature { border-color: blue; }
+        /* Simple style for active tab */
+        .tab-button.active {
+            border-color: #3b82f6; /* blue-500 */
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        /* Hide inactive tab content */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans p-4 md:p-8">
@@ -20,101 +27,115 @@
 
         <h1 class="text-2xl md:text-3xl font-bold text-center text-gray-800 mb-6">PDF Signature Tool</h1>
 
-        <!-- Upload Sections -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <!-- PDF Upload -->
-            <div class="bg-gray-50 p-4 rounded border border-gray-200">
-                <label for="pdf-upload" class="block text-sm font-medium text-gray-700 mb-1">1. Upload PDF:</label>
-                <input type="file" id="pdf-upload" accept=".pdf"
-                       class="block w-full text-sm text-gray-500
-                              file:mr-4 file:py-2 file:px-4
-                              file:rounded-full file:border-0
-                              file:text-sm file:font-semibold
-                              file:bg-blue-50 file:text-blue-700
-                              hover:file:bg-blue-100 cursor-pointer"/>
-            </div>
+        <!-- Tab Navigation -->
+        <div class="border-b border-gray-200 mb-6">
+            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                <button id="tab-sign-pdf" data-tab="signPdf" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    Sign PDF
+                </button>
+                <button id="tab-convert-sig" data-tab="convertSig" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    Convert Signature
+                </button>
+            </nav>
+        </div>
 
-            <!-- Signature Upload & Gallery -->
-            <div class="bg-gray-50 p-4 rounded border border-gray-200">
-                <label for="signature-upload" class="block text-sm font-medium text-gray-700 mb-1">2. Upload Signature(s):</label>
-                <input type="file" id="signature-upload" accept="image/png, image/jpeg, image/gif"
-                       class="block w-full text-sm text-gray-500 mb-3
-                              file:mr-4 file:py-2 file:px-4
-                              file:rounded-full file:border-0
-                              file:text-sm file:font-semibold
-                              file:bg-green-50 file:text-green-700
-                              hover:file:bg-green-100 cursor-pointer"/>
-                <div id="signature-gallery" class="mt-2 flex flex-wrap gap-2 border-t pt-2 min-h-[50px]">
-                    <!-- Signature previews appear here -->
-                    <span class="text-xs text-gray-500 italic">Uploaded signatures will appear here. Click one to activate.</span>
+        <!-- Tab Content -->
+        <div>
+            <!-- == Sign PDF Tab Content == -->
+            <div id="tab-content-signPdf" class="tab-content active">
+                <!-- Upload Sections -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <!-- PDF Upload -->
+                    <div class="bg-gray-50 p-4 rounded border border-gray-200">
+                        <label for="pdf-upload" class="block text-sm font-medium text-gray-700 mb-1">1. Upload PDF:</label>
+                        <input type="file" id="pdf-upload" accept=".pdf"
+                               class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"/>
+                    </div>
+                    <!-- Signature Upload & Gallery -->
+                    <div class="bg-gray-50 p-4 rounded border border-gray-200">
+                        <label for="signature-upload" class="block text-sm font-medium text-gray-700 mb-1">2. Upload Signature(s):</label>
+                        <input type="file" id="signature-upload" accept="image/png, image/jpeg, image/gif"
+                               class="block w-full text-sm text-gray-500 mb-3 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 cursor-pointer"/>
+                        <div id="signature-gallery" class="mt-2 flex flex-wrap gap-2 border-t pt-2 min-h-[50px]">
+                           <span class="text-xs text-gray-500 italic">Uploaded signatures will appear here.</span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
+                <!-- PDF Viewer and Placement Area -->
+                <div id="pdf-viewer-container" class="bg-white p-4 rounded border border-gray-200 mb-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4 text-center">3. Place & Resize Signature(s) on PDF</h2>
+                    <div id="controls" class="flex justify-center items-center gap-4 mb-4">
+                        <button id="prev-page" disabled class="px-3 py-1 bg-gray-300 text-gray-600 rounded hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">< Prev</button>
+                        <span class="text-sm text-gray-700">Page: <span id="page-num">0</span> / <span id="page-count">0</span></span>
+                        <button id="next-page" disabled class="px-3 py-1 bg-gray-300 text-gray-600 rounded hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">Next ></button>
+                    </div>
+                    <div id="viewer" class="relative mx-auto border border-gray-300 bg-gray-200 overflow-hidden w-full md:w-auto inline-block">
+                         <div id="signatureBox" class="absolute cursor-move border border-dashed border-blue-500 z-10 hidden">
+                             <img id="signatureImage" src="#" alt="Active Signature" draggable="false" class="block w-full h-full object-contain pointer-events-none"/>
+                             <div class="resize-handle absolute w-3 h-3 bg-blue-600 border border-white rounded-sm -top-[6px] -left-[6px] cursor-nwse-resize z-20"></div>
+                             <div class="resize-handle absolute w-3 h-3 bg-blue-600 border border-white rounded-sm -top-[6px] -right-[6px] cursor-nesw-resize z-20"></div>
+                             <div class="resize-handle absolute w-3 h-3 bg-blue-600 border border-white rounded-sm -bottom-[6px] -left-[6px] cursor-nesw-resize z-20"></div>
+                             <div class="resize-handle absolute w-3 h-3 bg-blue-600 border border-white rounded-sm -bottom-[6px] -right-[6px] cursor-nwse-resize z-20"></div>
+                         </div>
+                    </div>
+                    <p class="text-center text-sm text-gray-600 mt-4">Select a signature, drag/resize the blue box, then click "Add".</p>
+                    <div class="text-center mt-3">
+                        <button id="add-signature-btn" disabled class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-50 disabled:cursor-not-allowed">Add This Signature</button>
+                    </div>
+                    <div id="placement-summary" class="mt-6 text-sm">
+                         <h4 class="font-semibold text-gray-700 border-b pb-1 mb-2">Signatures Added:</h4>
+                         <ul id="placed-signatures-list" class="list-none p-0 max-h-32 overflow-y-auto space-y-1">
+                             <li class="text-gray-500 italic">No signatures added yet.</li>
+                         </ul>
+                     </div>
+                </div>
+                <!-- Action Button & Status -->
+                <div class="action-section text-center mt-6">
+                    <button id="generate-button" disabled class="px-6 py-3 bg-green-600 text-white text-lg font-semibold rounded-lg shadow hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 disabled:opacity-50 disabled:cursor-not-allowed">4. Generate Signed PDF</button>
+                    <p id="status" class="mt-3 text-sm font-medium min-h-[1.2em]"></p>
+                </div>
+            </div><!-- /#tab-content-signPdf -->
 
-        <!-- PDF Viewer and Placement Area -->
-        <div id="pdf-viewer-container" class="bg-white p-4 rounded border border-gray-200 mb-6">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4 text-center">3. Place & Resize Signature(s) on PDF</h2>
+            <!-- == Convert Signature Tab Content == -->
+            <div id="tab-content-convertSig" class="tab-content">
+                <div class="bg-gray-50 p-6 rounded border border-gray-200 max-w-lg mx-auto">
+                     <h3 class="text-lg font-semibold text-gray-800 mb-4">Convert Signature Background</h3>
+                     <p class="text-sm text-gray-600 mb-4">Upload a signature image (PNG, JPG, GIF). The tool will attempt to make the background transparent and provide a downloadable PNG file. Best results with clear signatures on plain backgrounds.</p>
 
-            <!-- PDF Controls -->
-            <div id="controls" class="flex justify-center items-center gap-4 mb-4">
-                <button id="prev-page" disabled
-                        class="px-3 py-1 bg-gray-300 text-gray-600 rounded hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">
-                    < Prev
-                </button>
-                <span class="text-sm text-gray-700">Page: <span id="page-num">0</span> / <span id="page-count">0</span></span>
-                <button id="next-page" disabled
-                        class="px-3 py-1 bg-gray-300 text-gray-600 rounded hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed">
-                    Next >
-                </button>
-            </div>
+                     <div class="mb-4">
+                         <label for="convert-sig-upload" class="block text-sm font-medium text-gray-700 mb-1">Select Signature File:</label>
+                         <input type="file" id="convert-sig-upload" accept="image/png, image/jpeg, image/gif"
+                                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"/>
+                     </div>
 
-            <!-- Viewer Area (Canvas + Signatures) -->
-            <div id="viewer" class="relative mx-auto border border-gray-300 bg-gray-200 overflow-hidden w-full md:w-auto inline-block">
-                 <!-- Canvas is added dynamically -->
-                 <!-- Persistent signature placements are added dynamically -->
+                     <div class="text-center mb-4">
+                         <button id="convert-button" class="px-5 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-50" disabled>
+                             Convert & Download
+                         </button>
+                     </div>
 
-                 <!-- Active Signature Box (for placing/editing NEW signatures) -->
-                 <div id="signatureBox" class="absolute cursor-move border border-dashed border-blue-500 z-10 hidden">
-                     <img id="signatureImage" src="#" alt="Active Signature" draggable="false" class="block w-full h-full object-contain pointer-events-none"/>
-                     <!-- Resize Handles -->
-                     <div class="resize-handle absolute w-3 h-3 bg-blue-600 border border-white rounded-sm -top-[6px] -left-[6px] cursor-nwse-resize z-20"></div>
-                     <div class="resize-handle absolute w-3 h-3 bg-blue-600 border border-white rounded-sm -top-[6px] -right-[6px] cursor-nesw-resize z-20"></div>
-                     <div class="resize-handle absolute w-3 h-3 bg-blue-600 border border-white rounded-sm -bottom-[6px] -left-[6px] cursor-nesw-resize z-20"></div>
-                     <div class="resize-handle absolute w-3 h-3 bg-blue-600 border border-white rounded-sm -bottom-[6px] -right-[6px] cursor-nwse-resize z-20"></div>
-                 </div>
-            </div>
+                     <p id="convert-status" class="mt-3 text-center text-sm font-medium min-h-[1.2em]"></p>
 
-            <!-- Instructions & Add Button -->
-            <p class="text-center text-sm text-gray-600 mt-4">Select a signature from the gallery, drag/resize the blue box on the PDF, then click "Add This Signature".</p>
-            <div class="text-center mt-3">
-                <button id="add-signature-btn" disabled
-                        class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                    Add This Signature to Document
-                </button>
-            </div>
+                     <!-- Result Preview Area (Optional but helpful) -->
+                     <div id="convert-result-area" class="mt-4 border-t pt-4 text-center hidden">
+                         <h4 class="text-md font-semibold text-gray-700 mb-2">Result Preview:</h4>
+                         <img id="converted-sig-preview" src="#" alt="Converted Signature Preview" class="max-w-xs mx-auto border border-gray-300 mb-3"/>
+                         <a id="download-converted-link" href="#" download="signature_transparent.png" class="inline-block px-4 py-2 bg-gray-600 text-white text-sm rounded hover:bg-gray-700">
+                             Download PNG
+                         </a>
+                     </div>
+                </div>
+            </div><!-- /#tab-content-convertSig -->
 
-             <!-- Placement Summary -->
-            <div id="placement-summary" class="mt-6 text-sm">
-                 <h4 class="font-semibold text-gray-700 border-b pb-1 mb-2">Signatures Added:</h4>
-                 <ul id="placed-signatures-list" class="list-none p-0 max-h-32 overflow-y-auto space-y-1">
-                     <li class="text-gray-500 italic">No signatures added yet.</li>
-                 </ul>
-             </div>
-        </div>
-
-
-        <!-- Action Button & Status -->
-        <div class="action-section text-center mt-6">
-            <button id="generate-button" disabled
-                    class="px-6 py-3 bg-green-600 text-white text-lg font-semibold rounded-lg shadow hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 disabled:opacity-50 disabled:cursor-not-allowed">
-                4. Generate Signed PDF
-            </button>
-            <p id="status" class="mt-3 text-sm font-medium min-h-[1.2em]"></p> <!-- Status message area -->
-        </div>
+        </div> <!-- /Tab Content Wrapper -->
 
     </div> <!-- /container -->
 
     <!-- Load script as module -->
-    <script type="module" src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <!-- Using relative path for static server -->
+    <script type="module" src="./static/js/script.js"></script>
+
+    <!-- We are using the Python backend, so pdf-lib is NOT needed here -->
+
 </body>
 </html>
