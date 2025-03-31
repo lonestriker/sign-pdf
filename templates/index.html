@@ -15,11 +15,15 @@
     </div>
 
     <div class="upload-section">
-        <label for="signature-upload">2. Upload Signature (PNG, JPG, GIF):</label>
+        <label for="signature-upload">2. Upload Signature(s) (PNG, JPG, GIF):</label>
         <input type="file" id="signature-upload" accept="image/png, image/jpeg, image/gif">
+        <div id="signature-gallery">
+            <!-- Uploaded signatures will appear here -->
+        </div>
     </div>
 
-    <div id="pdf-viewer-container">
+     <div id="pdf-viewer-container">
+        <h2>3. Place & Resize Signature(s) on PDF</h2>
         <div id="controls">
             <button id="prev-page" disabled>< Prev</button>
             <span>Page: <span id="page-num">0</span> / <span id="page-count">0</span></span>
@@ -27,21 +31,37 @@
         </div>
         <div id="viewer" class="pdfViewer">
              <!-- Canvas will be dynamically added here -->
-             <img id="signatureImage" src="#" alt="Signature Preview" draggable="true" style="display: none;"/>
+             <!-- Signature container for dragging and resizing -->
+             <div id="signatureBox" style="display: none;">
+                 <img id="signatureImage" src="#" alt="Active Signature" draggable="true"/>
+                 <!-- Resize Handles -->
+                 <div class="resize-handle top-left"></div>
+                 <div class="resize-handle top-right"></div>
+                 <div class="resize-handle bottom-left"></div>
+                 <div class="resize-handle bottom-right"></div>
+                 <!-- Add edge handles if desired -->
+                 <!-- <div class="resize-handle top"></div> -->
+                 <!-- <div class="resize-handle bottom"></div> -->
+                 <!-- <div class="resize-handle left"></div> -->
+                 <!-- <div class="resize-handle right"></div> -->
+             </div>
         </div>
-         <p>Drag the signature image onto the desired location on the PDF page above.</p>
+        <p>Select a signature from the gallery below, drag it onto the PDF, and resize using the handles. Then click "Add This Signature".</p>
+        <button id="add-signature-btn" disabled>Add This Signature to Document</button>
+         <div id="placement-summary">
+             <h4>Signatures Added:</h4>
+             <ul id="placed-signatures-list">
+                 <!-- List of placed signatures will appear here -->
+             </ul>
+         </div>
     </div>
 
+
     <div class="action-section">
-        <button id="sign-button" disabled>3. Place Signature & Download</button>
+        <button id="generate-button" disabled>4. Generate Signed PDF</button>
         <p id="status"></p>
     </div>
 
-    <!-- Load the main script as a module -->
-    <!-- The PDF.js library itself will be imported within script.js -->
     <script type="module" src="{{ url_for('static', filename='js/script.js') }}"></script>
-
-    <!-- NOTE: We no longer need separate script tags for pdf.js or pdf.worker.js here -->
-
 </body>
 </html>
