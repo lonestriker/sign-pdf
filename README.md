@@ -47,7 +47,7 @@ Note that the signature converter is not be available in this web-only mode.
    git clone https://github.com/lonestriker/sign-pdf.git
    ```
 2. Open broswer and load file directly from filesystem `file:///path/to/.../web/index.html`
-3. Alternatively, if running on a remote linux server, run a Python web server with `cd sign-pdf; python -m http.server` and open http://localhost:8000/ from your desktop.
+3. Alternatively, if running on a remote linux server, run a Python web server with `cd sign-pdf; python -m http.server` and open http://<ip-address-of-your-server>:8000/ from your desktop.
 4. Upload your PDF document
 5. Upload your signature as an image file
 6. Position the signature on the PDF
@@ -78,7 +78,6 @@ Python-based version allows conversion of signatures from images (jpg, gif, png,
     python -m venv .venv
     source .venv/bin/activate
     pip install -r requirements.txt
-    source .venv/bin/activate
     python app.py
     ```
 
