@@ -13,6 +13,22 @@ A versatile PDF signature application that allows users to add signatures to PDF
 - Preview PDF documents before signing
 - Download signed PDFs instantly
 
+
+## Accessing No-install Versions of the web site
+
+### Usage (Directly from GitHub Pages)
+
+This version does not support signature cleaning and conversion.
+
+1. Open your browser and navigate to https://lonestriker.github.io/sign-pdf
+
+### Usage (Directly from GitHub with [uv](https://docs.astral.sh/uv/getting-started/installation/)'s uvx)
+
+This version supports signature cleaning and conversion as it runs the Python-based version
+
+1. Run `uvx --from git+https://github.com/lonestriker/sign-pdf.git sign-pdf` from a terminal
+2. Open your browser and navigate to http://localhost:5000
+
 ## Browser-Based Version
 
 The browser-based version runs entirely in your web browser, with no server requirements:
@@ -22,7 +38,7 @@ The browser-based version runs entirely in your web browser, with no server requ
 - Ensures privacy as files never leave your device
 - Works offline after initial page load
 
-### Usage (Browser Version)
+### Usage (Browser Version from source)
 
 Note that the signature converter is not be available in this web-only mode.
 
@@ -31,7 +47,7 @@ Note that the signature converter is not be available in this web-only mode.
    git clone https://github.com/lonestriker/sign-pdf.git
    ```
 2. Open broswer and load file directly from filesystem `file:///path/to/.../web/index.html`
-3. Alternatively, if running on a remote linux server, run a Python web server with `cd sign-pdf; python -m http.server` and open `http://localhost:8000/` from your desktop.
+3. Alternatively, if running on a remote linux server, run a Python web server with `cd sign-pdf; python -m http.server` and open http://localhost:8000/ from your desktop.
 4. Upload your PDF document
 5. Draw your signature or upload a signature image
 6. Position the signature on the PDF
@@ -45,7 +61,7 @@ The Python backend version offers additional features and processing capabilitie
 
 - Python 3.9 or higher
 
-### Usage (Python Version)
+### Usage (Python Version from source)
 
 Python-based version allows conversion of signatures from images (jpg, gif, png, etc.) into transparent `png` format with a transparent background.
 
@@ -74,7 +90,7 @@ Python-based version allows conversion of signatures from images (jpg, gif, png,
    python app.py
    ```
 
-4. Open your browser and navigate to `http://localhost:5000`
+4. Open your browser and navigate to http://localhost:5000
 
 
 ## Security Considerations
