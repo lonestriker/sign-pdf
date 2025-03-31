@@ -1,0 +1,118 @@
+body {
+    font-family: sans-serif;
+    line-height: 1.6;
+    margin: 20px;
+    background-color: #f4f4f4;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+}
+
+.upload-section, .action-section {
+    background: #fff;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+input[type="file"] {
+    display: block;
+    margin-bottom: 10px;
+}
+
+#pdf-viewer-container {
+    background: #fff;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center; /* Center controls and canvas container */
+}
+
+#controls {
+    margin-bottom: 10px;
+}
+
+#controls button {
+    padding: 5px 10px;
+    margin: 0 5px;
+    cursor: pointer;
+}
+
+#controls span {
+    display: inline-block;
+    min-width: 80px; /* Prevent jumpiness */
+    text-align: center;
+}
+
+/* --- Crucial for positioning the signature --- */
+#viewer {
+    position: relative; /* Parent for absolute positioning of signature */
+    display: inline-block; /* Fit the canvas size */
+    border: 1px solid #ccc;
+    background-color: #e9e9e9; /* Show area before canvas loads */
+    min-height: 300px; /* Placeholder height */
+    overflow: hidden; /* Prevent signature going outside bounds visually */
+}
+
+#viewer canvas {
+    display: block; /* Remove extra space below canvas */
+    max-width: 100%; /* Make it responsive */
+    height: auto;
+}
+
+#signatureImage {
+    position: absolute; /* Position relative to #viewer */
+    cursor: move;
+    border: 1px dashed blue; /* Make it visible */
+    max-width: 150px; /* Limit initial size */
+    height: auto;
+    user-select: none; /* Prevent text selection during drag */
+    /* Will be positioned by JavaScript */
+    left: 10px;
+    top: 10px;
+    z-index: 10; /* Ensure it's above the canvas */
+}
+/* --- End crucial positioning --- */
+
+#sign-button {
+    padding: 10px 15px;
+    font-size: 1em;
+    cursor: pointer;
+    background-color: #5cb85c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+}
+
+#sign-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+#status {
+    margin-top: 10px;
+    font-weight: bold;
+    min-height: 1.2em; /* Prevent layout jumps */
+}
+
+.loading {
+    color: #337ab7;
+}
+
+.error {
+    color: #d9534f;
+}
+
+.success {
+    color: #5cb85c;
+}

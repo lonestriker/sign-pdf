@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Signature Tool</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <h1>PDF Signature Tool</h1>
+
+    <div class="upload-section">
+        <label for="pdf-upload">1. Upload PDF:</label>
+        <input type="file" id="pdf-upload" accept=".pdf">
+    </div>
+
+    <div class="upload-section">
+        <label for="signature-upload">2. Upload Signature (PNG, JPG, GIF):</label>
+        <input type="file" id="signature-upload" accept="image/png, image/jpeg, image/gif">
+    </div>
+
+    <div id="pdf-viewer-container">
+        <div id="controls">
+            <button id="prev-page" disabled>< Prev</button>
+            <span>Page: <span id="page-num">0</span> / <span id="page-count">0</span></span>
+            <button id="next-page" disabled>Next ></button>
+        </div>
+        <div id="viewer" class="pdfViewer">
+             <!-- Canvas will be dynamically added here -->
+             <img id="signatureImage" src="#" alt="Signature Preview" draggable="true" style="display: none;"/>
+        </div>
+         <p>Drag the signature image onto the desired location on the PDF page above.</p>
+    </div>
+
+    <div class="action-section">
+        <button id="sign-button" disabled>3. Place Signature & Download</button>
+        <p id="status"></p>
+    </div>
+
+    <!-- Load the main script as a module -->
+    <!-- The PDF.js library itself will be imported within script.js -->
+    <script type="module" src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+    <!-- NOTE: We no longer need separate script tags for pdf.js or pdf.worker.js here -->
+
+</body>
+</html>
