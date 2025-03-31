@@ -63,6 +63,9 @@ const STATUS_CLASSES = {
     success: 'text-green-600'
 };
 
+// NEW: Define upscale factor for signature pad resolution
+const SIGNATURE_PAD_UPSCALE_FACTOR = 2.5; // Try 2, 2.5, or 3
+
 // --- Initialization ---
 setupSignatureInputToggle(); // Setup the toggle UI first
 updateButtonStates();
@@ -177,29 +180,44 @@ function initializeSignaturePad() {
     signaturePad.clear(); // Start with a clear pad
 }
 
-/** Resizes the signature pad canvas based on its display size and pixel ratio. */
+/** Resizes the signature pad canvas based on its display size, pixel ratio, and upscale factor. */
 function resizeCanvas() {
     if (!signaturePadCanvas || !signaturePadCanvas.offsetParent) {
         // Don't resize if the canvas isn't visible (e.g., modal closed)
         return;
     }
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
-    // Set internal buffer size based on display size * ratio
-    signaturePadCanvas.width = signaturePadCanvas.offsetWidth * ratio;
-    signaturePadCanvas.height = signaturePadCanvas.offsetHeight * ratio;
-    const ctx = signaturePadCanvas.getContext("2d");
-    if (ctx) {
-        ctx.scale(ratio, ratio); // Scale drawing context
-        if (signaturePad) {
-             // SignaturePad needs to know its state might be invalid after resize
-             signaturePad.clear(); // Clear drawings after resize
-             // Optional: redraw existing content if needed (more complex)
+
+    // Calculate the desired internal pixel dimensions
+    const displayWidth = signaturePadCanvas.offsetWidth;
+    const displayHeight = signaturePadCanvas.offsetHeight;
+    const internalWidth = displayWidth * ratio * SIGNATURE_PAD_UPSCALE_FACTOR;
+    const internalHeight = displayHeight * ratio * SIGNATURE_PAD_UPSCALE_FACTOR;
+
+    // Check if dimensions actually changed to avoid unnecessary clearing
+    if (signaturePadCanvas.width !== internalWidth || signaturePadCanvas.height !== internalHeight) {
+
+        // Set internal buffer size based on display size * ratio * upscaleFactor
+        signaturePadCanvas.width = internalWidth;
+        signaturePadCanvas.height = internalHeight;
+
+        const ctx = signaturePadCanvas.getContext("2d");
+        if (ctx) {
+            // Scale the drawing context to match the upscaled resolution
+            ctx.scale(ratio * SIGNATURE_PAD_UPSCALE_FACTOR, ratio * SIGNATURE_PAD_UPSCALE_FACTOR);
+
+            if (signaturePad) {
+                 // Data caches need to be cleared after canvas buffer size changes
+                 signaturePad.clear();
+                 // You might potentially lose existing drawing here if the modal was
+                 // resized while open. Usually called when modal opens, so it's fine.
+            }
+            console.log(`Signature pad resized to internal: ${internalWidth}x${internalHeight} (display: ${displayWidth}x${displayHeight})`);
+        } else {
+            console.error("Failed to get 2D context for signature pad canvas.");
         }
-    } else {
-        console.error("Failed to get 2D context for signature pad canvas.");
     }
 }
-
 
 // --- Signature Processing & Saving (Drawn) ---
 
