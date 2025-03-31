@@ -49,7 +49,7 @@ Note that the signature converter is not be available in this web-only mode.
 2. Open broswer and load file directly from filesystem `file:///path/to/.../web/index.html`
 3. Alternatively, if running on a remote linux server, run a Python web server with `cd sign-pdf; python -m http.server` and open http://localhost:8000/ from your desktop.
 4. Upload your PDF document
-5. Draw your signature or upload a signature image
+5. Upload your signature as an image file
 6. Position the signature on the PDF
 7. Download the signed document
 
@@ -57,13 +57,9 @@ Note that the signature converter is not be available in this web-only mode.
 
 The Python backend version offers additional features and processing capabilities:
 
-### Prerequisites
-
-- Python 3.9 or higher
-
 ### Usage (Python Version from source)
 
-Python-based version allows conversion of signatures from images (jpg, gif, png, etc.) into transparent `png` format with a transparent background.
+Python-based version allows conversion of signatures from images (jpg, gif, png, etc.) into `png` format with a transparent background.
 
 1. Clone the repository:
    ```bash
@@ -72,26 +68,21 @@ Python-based version allows conversion of signatures from images (jpg, gif, png,
    ```
 
 2. Install dependencies for Python-based server (including signature converter):
-   * Using [uv](https://docs.astral.sh/uv/getting-started/installation/) (recommended)
+   * Using [uv](https://docs.astral.sh/uv/getting-started/installation/) (recommended) does not require any installed Python version, just `uv` itself.
     ```bash
-    uv sync
+    uv run sign-pdf
     ```
 
-   * Using standard Python venv
+   * Using standard Python venv (requires Python 3.9 or later)
     ```bash
     python -m venv .venv
     source .venv/bin/activate
     pip install -r requirements.txt
+    source .venv/bin/activate
+    python app.py
     ```
 
-3. Run the server:
-   ```bash
-   source .venv/bin/activate
-   python app.py
-   ```
-
 4. Open your browser and navigate to http://localhost:5000
-
 
 ## Security Considerations
 
