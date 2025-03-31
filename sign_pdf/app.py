@@ -1,20 +1,18 @@
 import os
 import io
 import uuid
-# No longer need json here unless used elsewhere
+import argparse # Keep argparse import
 from flask import Flask, render_template, request, send_file, jsonify, abort
-# No longer need fitz (PyMuPDF) for signing
-from PIL import Image # Still needed for background removal
+from PIL import Image
 
 # --- Configuration ---
-UPLOAD_FOLDER = 'uploads' # Still potentially needed for /convert_signature temporary storage if desired, or can process in memory
+UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS_IMG = {'png', 'jpg', 'jpeg', 'gif'}
-# ALLOWED_EXTENSIONS_PDF = {'pdf'} # Not needed if /sign is removed
-BACKGROUND_REMOVAL_TOLERANCE = 30 # Config for background removal
+BACKGROUND_REMOVAL_TOLERANCE = 30
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # Reduced slightly as only images are uploaded now
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # --- Helper Functions ---
 def allowed_file(filename, allowed_set):
@@ -24,14 +22,12 @@ def allowed_file(filename, allowed_set):
 
 def ensure_upload_folder():
     """Creates the upload folder if it doesn't exist."""
-    # Might not be strictly necessary if /convert_signature processes in memory
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         try:
             os.makedirs(app.config['UPLOAD_FOLDER'])
             app.logger.info(f"Created upload folder: {app.config['UPLOAD_FOLDER']}")
         except OSError as e:
             app.logger.error(f"Could not create upload folder: {e}")
-            # Decide if this is fatal or if in-memory processing is okay
 
 def remove_background(image_bytes, tolerance=BACKGROUND_REMOVAL_TOLERANCE):
     """Removes the background from image bytes, returns PNG bytes."""
@@ -39,28 +35,24 @@ def remove_background(image_bytes, tolerance=BACKGROUND_REMOVAL_TOLERANCE):
         img = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
         if img.mode == 'P': img = img.convert("RGBA") # Handle palette mode
 
-        # Try getting corner pixel, fallback if needed (e.g., fully transparent image)
         try:
              bg_pixel = img.getpixel((0, 0))
         except IndexError:
-             # Fallback: assume white background if corner pixel access fails
              bg_pixel = (255, 255, 255, 255)
              app.logger.warning("Could not get corner pixel, assuming white background.")
 
         newData = []
         for item in img.getdata():
             is_background = True
-            # Compare RGB within tolerance (check lengths first)
             if len(item) >= 3 and len(bg_pixel) >= 3:
                 if not all(bg_pixel[i] - tolerance <= item[i] <= bg_pixel[i] + tolerance for i in range(3)):
                     is_background = False
             elif len(item) >= 1 and len(bg_pixel) >= 1: # Grayscale check
                  if not (bg_pixel[0] - tolerance <= item[0] <= bg_pixel[0] + tolerance):
                      is_background = False
-            else: # Cannot determine color similarity
+            else:
                 is_background = False
 
-            # Alpha check (treat highly transparent pixels as background)
             if len(item) > 3 and item[3] < 20:
                  is_background = True
 
@@ -68,14 +60,13 @@ def remove_background(image_bytes, tolerance=BACKGROUND_REMOVAL_TOLERANCE):
 
         img.putdata(newData)
         output_buffer = io.BytesIO()
-        img.save(output_buffer, format="PNG") # Always save as PNG
+        img.save(output_buffer, format="PNG")
         img.close()
         output_buffer.seek(0)
         return output_buffer.getvalue()
 
     except Exception as e:
         app.logger.error(f"Error removing background: {e}", exc_info=True)
-        # Re-raise a more specific error for the route handler
         raise ValueError(f"Failed to process image background: {e}")
 
 
@@ -99,27 +90,18 @@ def convert_signature_route():
     try:
         image_bytes = sig_file.read()
         processed_bytes = remove_background(image_bytes)
-
-        # Send back the processed PNG data
         return send_file(
             io.BytesIO(processed_bytes),
             mimetype='image/png',
-            as_attachment=True, # Suggest download
-            download_name=f"{os.path.splitext(sig_file.filename)[0]}_transparent.png" # Generate download name
+            as_attachment=True,
+            download_name=f"{os.path.splitext(sig_file.filename)[0]}_transparent.png"
         )
-    except ValueError as e: # Catch specific error from remove_background
+    except ValueError as e:
          app.logger.error(f"Conversion processing error: {e}")
          abort(400, description=str(e))
     except Exception as e:
         app.logger.error(f"Unexpected conversion error: {e}", exc_info=True)
         abort(500, description="Server error during image processing.")
-
-
-# --- REMOVED /sign ROUTE ---
-# @app.route('/sign', methods=['POST'])
-# def sign_pdf():
-#    ... (All the previous /sign logic is removed) ...
-
 
 # --- Error Handler ---
 @app.errorhandler(400)
@@ -131,10 +113,38 @@ def handle_error(error):
     response.status_code = getattr(error, 'code', 500)
     return response
 
-# --- Main Execution ---
-def main():
-    # ensure_upload_folder() # May not be needed if processing in memory
-    app.run(debug=True) # Add host='0.0.0.0' if needed for network access
+# --- Application Runner / CLI Function ---
+def run_app():
+    """Parses arguments and runs the Flask application."""
+    parser = argparse.ArgumentParser(description='Run the Flask Signature App.')
+    parser.add_argument(
+        '--host',
+        type=str,
+        default='0.0.0.0', # Default host
+        help='The interface to bind the server to. Default: 0.0.0.0'
+    )
+    parser.add_argument(
+        '--port',
+        type=int,
+        default=5000,      # Default port
+        help='The port number for the server to listen on. Default: 5000'
+    )
+    parser.add_argument(
+        '--debug',
+        action='store_true', # Use store_true for boolean flags
+        help='Enable Flask debug mode.'
+    )
 
+    args = parser.parse_args()
+
+    # ensure_upload_folder() # Optional: Call if needed before app starts
+
+    print(f" * Starting Flask server on http://{args.host}:{args.port}")
+    if args.debug:
+        print(" * Debug mode is ON")
+    # Pass debug value to app.run
+    app.run(host=args.host, port=args.port, debug=args.debug)
+
+# --- Main Execution Guard ---
 if __name__ == '__main__':
-    main()
+    run_app() # Call the argument parsing and app runner function

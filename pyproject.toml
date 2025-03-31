@@ -8,7 +8,7 @@ requires-python = ">=3.9"
 dependencies = [
     "flask>=2.0",
     "pillow>=8.0",
-    "pymupdf>=1.18.14",
+    # "pymupdf>=1.18.14",
 ]
 
 [build-system]
@@ -27,4 +27,4 @@ build-backend = "hatchling.build"
 "Source code" = "https://github.com/lonestriker/sign-pdf"
 
 [project.scripts]
-sign-pdf = "sign_pdf.app:main"
+sign-pdf = "sign_pdf.app:run_app"
