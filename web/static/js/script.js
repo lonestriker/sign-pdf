@@ -1,5 +1,5 @@
 // Access libraries loaded globally via script tags in HTML
-const { PDFDocument, rgb, StandardFonts } = PDFLib; // Destructure from pdf-lib global
+const { PDFDocument } = PDFLib; // Destructure from pdf-lib global
 const SignaturePad = window.SignaturePad; // Access from global scope
 // pdfjsLib should be available globally from the module script in HTML
 
@@ -37,7 +37,7 @@ let currentPageNum = 1;
 let currentScale = 1.5;
 let pdfFile = null; // The original PDF File object
 
-let uploadedSignatures = []; // { id, file, dataUrl, name } <- Added name
+let uploadedSignatures = []; // { id, file, dataUrl, name }
 let activeSignatureId = null;
 let placedSignatures = []; // { placementId, signatureId, pageNum (0-based), x, y, widthPx, heightPx }
 
@@ -98,8 +98,8 @@ window.addEventListener('resize', resizeCanvas); // Resize signature pad canvas 
 // --- Library Check ---
 function checkSignaturePadLib() {
     if (typeof SignaturePad === 'undefined') {
-        console.error("SignaturePad library not loaded!");
-        setStatus("Error: Signature drawing library failed to load. Drawing disabled.", "error");
+        console.error('SignaturePad library not loaded!');
+        setStatus('Error: Signature drawing library failed to load. Drawing disabled.', 'error');
         // Disable draw functionality if library missing
         if (showDrawBtn) showDrawBtn.disabled = true;
         if (openDrawModalBtn) openDrawModalBtn.disabled = true;
@@ -154,14 +154,14 @@ function closeSignatureModal() {
 /** Initializes or reinitializes the SignaturePad instance. */
 function initializeSignaturePad() {
     if (!signaturePadCanvas || typeof SignaturePad === 'undefined') {
-        console.error("Signature pad canvas or library not available.");
-        setStatus("Cannot initialize signature pad.", "error");
+        console.error('Signature pad canvas or library not available.');
+        setStatus('Cannot initialize signature pad.', 'error');
         closeSignatureModal();
         return;
     }
     // Ensure canvas has explicit dimensions needed by SignaturePad
     if (!signaturePadCanvas.width || !signaturePadCanvas.height) {
-        console.warn("Canvas needs explicit width/height attributes. Setting defaults.");
+        console.warn('Canvas needs explicit width/height attributes. Setting defaults.');
         const style = getComputedStyle(signaturePadCanvas);
         signaturePadCanvas.width = parseInt(style.width, 10) || 480;
         signaturePadCanvas.height = parseInt(style.height, 10) || 192;
@@ -201,7 +201,7 @@ function resizeCanvas() {
         signaturePadCanvas.width = internalWidth;
         signaturePadCanvas.height = internalHeight;
 
-        const ctx = signaturePadCanvas.getContext("2d");
+        const ctx = signaturePadCanvas.getContext('2d');
         if (ctx) {
             // Scale the drawing context to match the upscaled resolution
             ctx.scale(ratio * SIGNATURE_PAD_UPSCALE_FACTOR, ratio * SIGNATURE_PAD_UPSCALE_FACTOR);
@@ -214,7 +214,7 @@ function resizeCanvas() {
             }
             console.log(`Signature pad resized to internal: ${internalWidth}x${internalHeight} (display: ${displayWidth}x${displayHeight})`);
         } else {
-            console.error("Failed to get 2D context for signature pad canvas.");
+            console.error('Failed to get 2D context for signature pad canvas.');
         }
     }
 }
@@ -225,13 +225,13 @@ function resizeCanvas() {
 function dataURLtoFile(dataurl, filename) {
     try {
         let arr = dataurl.split(','), mimeMatch = arr[0].match(/:(.*?);/);
-        if (!mimeMatch) throw new Error("Invalid Data URL format");
+        if (!mimeMatch) throw new Error('Invalid Data URL format');
         let mime = mimeMatch[1], bstr = atob(arr[arr.length - 1]), n = bstr.length, u8arr = new Uint8Array(n);
         while(n--){ u8arr[n] = bstr.charCodeAt(n); }
         return new File([u8arr], filename, {type:mime});
     } catch (e) {
-        console.error("Error converting Data URL to File:", e);
-        setStatus("Error processing drawn signature.", "error");
+        console.error('Error converting Data URL to File:', e);
+        setStatus('Error processing drawn signature.', 'error');
         return null;
     }
 }
@@ -251,7 +251,7 @@ function makeBackgroundTransparent(dataUrl) {
                 canvas.width = img.naturalWidth; // Use natural dimensions
                 canvas.height = img.naturalHeight;
                 const ctx = canvas.getContext('2d', { willReadFrequently: true });
-                if (!ctx) { throw new Error("Failed to get 2D context."); }
+                if (!ctx) { throw new Error('Failed to get 2D context.'); }
 
                 ctx.drawImage(img, 0, 0);
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -276,13 +276,13 @@ function makeBackgroundTransparent(dataUrl) {
                 ctx.putImageData(imageData, 0, 0);
                 resolve(canvas.toDataURL('image/png')); // Always return PNG for transparency
             } catch (error) {
-                 console.error("Transparency processing error:", error);
-                 reject(new Error("Failed to process signature transparency."));
+                 console.error('Transparency processing error:', error);
+                 reject(new Error('Failed to process signature transparency.'));
             }
         };
         img.onerror = (error) => {
-            console.error("Image load error for transparency:", error);
-            reject(new Error("Failed to load signature image for processing."));
+            console.error('Image load error for transparency:', error);
+            reject(new Error('Failed to load signature image for processing.'));
         };
         img.src = dataUrl;
     });
@@ -292,7 +292,7 @@ function makeBackgroundTransparent(dataUrl) {
 /** Saves the signature drawn on the pad, makes background transparent, adds to gallery. */
 async function saveDrawnSignature() {
     if (!signaturePad || signaturePad.isEmpty()) {
-        alert("Please provide a signature first.");
+        alert('Please provide a signature first.');
         return;
     }
     setStatus('Processing drawn signature...', 'loading');
@@ -329,8 +329,8 @@ async function saveDrawnSignature() {
         closeSignatureModal(); // Close the modal on success
 
     } catch (error) {
-        console.error("Error saving drawn signature:", error);
-        setStatus(`Error saving drawn signature: ${error.message || error}`, "error");
+        console.error('Error saving drawn signature:', error);
+        setStatus(`Error saving drawn signature: ${error.message || error}`, 'error');
     }
 }
 
@@ -346,8 +346,8 @@ function handlePdfUpload(event) {
             setStatus('Loading PDF...', 'loading');
             // Ensure pdfjsLib is available (loaded via module script)
             if (!window.pdfjsLib) {
-                setStatus("Error: PDF rendering library not loaded.", "error");
-                console.error("pdfjsLib is not defined globally.");
+                setStatus('Error: PDF rendering library not loaded.', 'error');
+                console.error('pdfjsLib is not defined globally.');
                 return;
             }
             const loadingTask = window.pdfjsLib.getDocument({ data: e.target.result });
@@ -361,7 +361,7 @@ function handlePdfUpload(event) {
                 renderPage(currentPageNum); // Initial render
                 setStatus('PDF loaded. Add or draw signature(s).', 'success'); // Updated text
             }).catch(err => {
-                console.error("Error loading PDF:", err);
+                console.error('Error loading PDF:', err);
                 setStatus(`Error loading PDF: ${err.message || err}`, 'error');
                 resetPdfState();
             });
@@ -386,12 +386,12 @@ function renderPage(num) {
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         if (!context) {
-            handleRenderError(new Error("Failed to get 2D context for PDF page"), num);
+            handleRenderError(new Error('Failed to get 2D context for PDF page'), num);
             return;
         }
         canvas.height = viewport.height;
         canvas.width = viewport.width;
-        canvas.className = "block mx-auto shadow-md"; // Style the canvas
+        canvas.className = 'block mx-auto shadow-md'; // Style the canvas
 
         // Store dimensions for placement calculations
         renderedPageWidth = viewport.width;
@@ -643,7 +643,6 @@ function resizeSignature(dx, dy) {
 }
 function keepSignatureInBounds(element) {
     if (!currentCanvas) return;
-    const canvasRect = currentCanvas.getBoundingClientRect(); // Use canvas boundary
     // Ensure element position is relative to viewer/canvas parent, not viewport
     let currentX = element.offsetLeft;
     let currentY = element.offsetTop;
@@ -658,7 +657,7 @@ function keepSignatureInBounds(element) {
     currentX = Math.max(0, Math.min(currentX, maxLeft));
     currentY = Math.max(0, Math.min(currentY, maxTop));
 
-    // Optionally constrain size if it somehow exceeds canvas dims (less likely with resize logic)
+    // Optionally constrain size if it somehow exceeds canvas dims
     currentWidth = Math.min(currentWidth, renderedPageWidth);
     currentHeight = Math.min(currentHeight, renderedPageHeight);
 
@@ -735,14 +734,14 @@ function renderPlacedSignaturesList() {
             const displayName = sigName.length > 20 ? sigName.substring(0, 17) + '...' : sigName;
 
             const li = document.createElement('li');
-            li.className = "flex justify-between items-center text-xs p-1 bg-gray-50 rounded";
+            li.className = 'flex justify-between items-center text-xs p-1 bg-gray-50 rounded';
             const textSpan = document.createElement('span');
             textSpan.textContent = `Sig: ${displayName} on Page ${p.pageNum + 1}`; // Show 1-based page number
             li.appendChild(textSpan);
             const removeBtn = document.createElement('button');
             removeBtn.textContent = 'Remove';
             removeBtn.dataset.placementId = p.placementId;
-            removeBtn.className = "ml-2 px-1 py-0.5 text-red-600 border border-red-500 rounded text-[10px] hover:bg-red-50 focus:outline-none focus:ring-1 focus:ring-red-300";
+            removeBtn.className = 'ml-2 px-1 py-0.5 text-red-600 border border-red-500 rounded text-[10px] hover:bg-red-50 focus:outline-none focus:ring-1 focus:ring-red-300';
             li.appendChild(removeBtn);
             placedSignaturesList.appendChild(li);
         });
@@ -768,7 +767,6 @@ function handleRemovePlacement(event) {
 
 // Helper function to read a File object as an ArrayBuffer
 function readFileAsArrayBuffer(file) {
-    // No change needed here
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
@@ -778,11 +776,7 @@ function readFileAsArrayBuffer(file) {
 }
 
 async function generateSignedPdfClientSide() {
-    // *** No changes needed here ***
-    // This function already relies on `sigData.file` which is now
-    // populated correctly for both uploaded and drawn (processed PNG) signatures.
-    // pdf-lib's embedPng should handle the transparency correctly.
-
+    // Un-rotate the PDF by rasterizing pages upright, then place signatures with original mapping.
     if (!pdfFile || placedSignatures.length === 0) {
         setStatus('Please load PDF and add signatures.', 'error');
         return;
@@ -796,77 +790,169 @@ async function generateSignedPdfClientSide() {
     generateButton.disabled = true;
 
     try {
+        // Load original PDF into pdf-lib
         const pdfBytes = await readFileAsArrayBuffer(pdfFile);
-        const pdfDoc = await PDFDocument.load(pdfBytes);
-        const pages = pdfDoc.getPages();
-        const uniqueSignatureIds = [...new Set(placedSignatures.map(p => p.signatureId))];
-        const embeddedSignatures = {};
+        const srcDoc = await PDFDocument.load(pdfBytes);
+        const srcPages = srcDoc.getPages();
 
-        for (const sigId of uniqueSignatureIds) {
-            const sigData = uploadedSignatures.find(s => s.id === sigId);
-            if (!sigData || !sigData.file) { // Check for file object existence
-                throw new Error(`Signature file missing for ID: ${sigId}`);
+        // Analyze rotation for each page
+        const rotations = srcPages.map(p => (p.getRotation()?.angle || 0) % 360);
+        const rotatedIndices = rotations
+            .map((angle, idx) => ({ angle, idx }))
+            .filter(x => x.angle !== 0)
+            .map(x => x.idx);
+
+        console.log(`PDF rotation analysis: total ${srcPages.length}, rotated pages: [${rotatedIndices.join(', ')}]`);
+
+        // Fast path: no rotated pages -> stamp directly on original doc (preserve vectors entirely)
+        if (rotatedIndices.length === 0) {
+            console.log('Fast path: no rasterization; stamping directly on original PDF.');
+
+            // Embed all unique signatures once into srcDoc
+            const uniqueSignatureIds = [...new Set(placedSignatures.map(p => p.signatureId))];
+            const embeddedSignatures = {};
+            for (const sigId of uniqueSignatureIds) {
+                const sigData = uploadedSignatures.find(s => s.id === sigId);
+                if (!sigData || !sigData.file) {
+                    throw new Error(`Signature file missing for ID: ${sigId}`);
+                }
+                const sigBytes = await readFileAsArrayBuffer(sigData.file);
+                const fileType = sigData.file.type;
+                let embeddedImage;
+                if (fileType === 'image/png') {
+                    embeddedImage = await srcDoc.embedPng(sigBytes);
+                } else if (fileType === 'image/jpeg') {
+                    embeddedImage = await srcDoc.embedJpg(sigBytes);
+                } else {
+                    try {
+                        embeddedImage = await srcDoc.embedPng(sigBytes);
+                        setStatus(`Warning: Embedded ${sigData.name} (${fileType}) as PNG.`, 'info');
+                    } catch (e) {
+                        throw new Error(`Unsupported signature type: ${fileType} for ${sigData.name}. Use PNG or JPG.`);
+                    }
+                }
+                embeddedSignatures[sigId] = embeddedImage;
             }
 
-            const sigBytes = await readFileAsArrayBuffer(sigData.file);
-            let embeddedImage;
-            const fileType = sigData.file.type; // Use the File object's type
+            // Stamp directly on srcDoc pages
+            for (const placement of placedSignatures) {
+                if (placement.pageNum < 0 || placement.pageNum >= srcPages.length) continue;
+                const page = srcDoc.getPage(placement.pageNum);
+                const { width: pageWidthPt, height: pageHeightPt } = page.getSize();
 
-            // Drawn signatures are always saved as 'image/png' after processing
-            if (fileType === 'image/png') {
-                embeddedImage = await pdfDoc.embedPng(sigBytes);
-            } else if (fileType === 'image/jpeg') {
-                embeddedImage = await pdfDoc.embedJpg(sigBytes);
+                const image = embeddedSignatures[placement.signatureId];
+                if (!image) continue;
+
+                const scaleX = pageWidthPt / renderedPageWidth;
+                const scaleY = pageHeightPt / renderedPageHeight;
+                const sigWidthPt = placement.widthPx * scaleX;
+                const sigHeightPt = placement.heightPx * scaleY;
+                const pdfX = placement.x * scaleX;
+                const pdfY = pageHeightPt - (placement.y * scaleY) - sigHeightPt;
+
+                page.drawImage(image, { x: pdfX, y: pdfY, width: sigWidthPt, height: sigHeightPt });
+            }
+
+            const modifiedPdfBytes = await srcDoc.save();
+            const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none'; a.href = url;
+            a.download = `${pdfFile.name.replace(/\.pdf$/i, '')}_signed.pdf`;
+            document.body.appendChild(a); a.click();
+            window.URL.revokeObjectURL(url); document.body.removeChild(a);
+
+            setStatus('Signed PDF generated successfully!', 'success');
+            return; // Done
+        }
+
+        // Mixed path: rasterize only rotated pages, copy unrotated as vectors
+        if (!pdfDocProxy) {
+            throw new Error('PDF renderer not initialized. Please reload the PDF.');
+        }
+        console.log('Mixed path: rasterizing rotated pages only; copying unrotated pages as vectors.');
+
+        const outDoc = await PDFDocument.create();
+
+        // Build target document
+        for (let i = 0; i < srcPages.length; i++) {
+            const angle = rotations[i];
+            if (angle === 0) {
+                // Copy vector page as-is
+                const [copied] = await outDoc.copyPages(srcDoc, [i]);
+                outDoc.addPage(copied);
             } else {
-                 // Handle unsupported types (like GIF) if necessary, or throw error
-                 console.warn(`Attempting to embed unsupported type ${fileType} for ${sigData.name}. May fail or lose transparency/animation.`);
-                  // pdf-lib might handle some basic cases, try PNG embedder as a guess, or error out.
-                  // Best practice: enforce PNG/JPG uploads or provide conversion.
-                 try {
-                      // Try embedding as PNG as a last resort if conversion isn't available
-                      embeddedImage = await pdfDoc.embedPng(sigBytes);
-                      setStatus(`Warning: Embedded ${sigData.name} (${fileType}) as PNG. Result may vary.`, 'info');
-                 } catch (embedError) {
-                      throw new Error(`Unsupported signature type: ${fileType} for ${sigData.name}. Use PNG or JPG.`);
-                 }
+                // Rasterize this page upright via PDF.js
+                const srcPage = srcPages[i];
+                const { width: pageWidthPt, height: pageHeightPt } = srcPage.getSize();
+                const needsSwap = angle === 90 || angle === 270;
+                const normWidthPt = needsSwap ? pageHeightPt : pageWidthPt;
+                const normHeightPt = needsSwap ? pageWidthPt : pageHeightPt;
+
+                const pdfjsPage = await pdfDocProxy.getPage(i + 1);
+                const RASTER_SCALE = 2.0;
+                const viewport = pdfjsPage.getViewport({ scale: RASTER_SCALE });
+                const offCanvas = document.createElement('canvas');
+                const ctx = offCanvas.getContext('2d');
+                if (!ctx) throw new Error('Failed to get 2D context for offscreen render.');
+                offCanvas.width = viewport.width;
+                offCanvas.height = viewport.height;
+                await pdfjsPage.render({ canvasContext: ctx, viewport }).promise;
+
+                const dataUrl = offCanvas.toDataURL('image/png');
+                const pngBytes = dataURLtoUint8Array(dataUrl);
+                const embeddedPng = await outDoc.embedPng(pngBytes);
+                const newPage = outDoc.addPage([normWidthPt, normHeightPt]);
+                newPage.drawImage(embeddedPng, { x: 0, y: 0, width: normWidthPt, height: normHeightPt });
+            }
+        }
+
+        // Embed signatures into outDoc
+        const uniqueSignatureIds = [...new Set(placedSignatures.map(p => p.signatureId))];
+        const embeddedSignatures = {};
+        for (const sigId of uniqueSignatureIds) {
+            const sigData = uploadedSignatures.find(s => s.id === sigId);
+            if (!sigData || !sigData.file) {
+                throw new Error(`Signature file missing for ID: ${sigId}`);
+            }
+            const sigBytes = await readFileAsArrayBuffer(sigData.file);
+            const fileType = sigData.file.type;
+            let embeddedImage;
+            if (fileType === 'image/png') {
+                embeddedImage = await outDoc.embedPng(sigBytes);
+            } else if (fileType === 'image/jpeg') {
+                embeddedImage = await outDoc.embedJpg(sigBytes);
+            } else {
+                try {
+                    embeddedImage = await outDoc.embedPng(sigBytes);
+                    setStatus(`Warning: Embedded ${sigData.name} (${fileType}) as PNG.`, 'info');
+                } catch (e) {
+                    throw new Error(`Unsupported signature type: ${fileType} for ${sigData.name}. Use PNG or JPG.`);
+                }
             }
             embeddedSignatures[sigId] = embeddedImage;
         }
 
-        // Draw signatures onto pages
+        // Stamp signatures on outDoc
         for (const placement of placedSignatures) {
-            if (placement.pageNum < 0 || placement.pageNum >= pages.length) {
-                console.warn(`Skipping placement for invalid page number: ${placement.pageNum}`);
-                continue;
-            }
-            const page = pages[placement.pageNum];
+            if (placement.pageNum < 0 || placement.pageNum >= outDoc.getPageCount()) continue;
+            const page = outDoc.getPage(placement.pageNum);
             const { width: pageWidthPt, height: pageHeightPt } = page.getSize();
 
-            const embeddedImage = embeddedSignatures[placement.signatureId];
-            if (!embeddedImage) {
-                console.warn(`Skipping placement as embedded image for ${placement.signatureId} not found.`);
-                continue;
-            }
+            const image = embeddedSignatures[placement.signatureId];
+            if (!image) continue;
 
-            // Scale placement from rendered pixels to PDF points
             const scaleX = pageWidthPt / renderedPageWidth;
             const scaleY = pageHeightPt / renderedPageHeight;
             const sigWidthPt = placement.widthPx * scaleX;
             const sigHeightPt = placement.heightPx * scaleY;
-            // Calculate PDF Y coordinate (origin is bottom-left)
             const pdfX = placement.x * scaleX;
             const pdfY = pageHeightPt - (placement.y * scaleY) - sigHeightPt;
 
-            page.drawImage(embeddedImage, {
-                x: pdfX,
-                y: pdfY,
-                width: sigWidthPt,
-                height: sigHeightPt,
-                // pdf-lib handles PNG transparency automatically when using embedPng
-            });
+            page.drawImage(image, { x: pdfX, y: pdfY, width: sigWidthPt, height: sigHeightPt });
         }
 
-        const modifiedPdfBytes = await pdfDoc.save();
+        const modifiedPdfBytes = await outDoc.save();
         const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -884,4 +970,16 @@ async function generateSignedPdfClientSide() {
         generateButton.disabled = false; // Re-enable button
         updateButtonStates();
     }
+}
+
+// --- Helpers for rasterization ---
+function dataURLtoUint8Array(dataURL) {
+    const base64 = dataURL.split(',')[1];
+    const binaryString = atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
 }

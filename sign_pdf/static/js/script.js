@@ -961,92 +961,158 @@ async function generateSignedPdfClientSide() {
         const pdfDoc = await PDFDocument.load(pdfBytes);
         const pages = pdfDoc.getPages();
 
-        // 3. Embed all unique required signatures
-        const uniqueSignatureIds = [...new Set(placedSignatures.map(p => p.signatureId))];
-        const embeddedSignatures = {}; // Cache embedded images { signatureId: PDFImage }
+        // Analyze page rotations
+        const rotations = pages.map(p => (p.getRotation()?.angle || 0) % 360);
+        const rotatedIndices = rotations
+            .map((angle, idx) => ({ angle, idx }))
+            .filter(x => x.angle !== 0)
+            .map(x => x.idx);
+        console.log(`Rotation analysis: ${pages.length} pages, rotated: [${rotatedIndices.join(', ')}]`);
 
+        if (rotatedIndices.length === 0) {
+            // Fast path: no rotation, keep original vector stamping on the source PDF
+            const uniqueSignatureIds = [...new Set(placedSignatures.map(p => p.signatureId))];
+            const embeddedSignatures = {};
+            for (const sigId of uniqueSignatureIds) {
+                const sigData = uploadedSignatures.find(s => s.id === sigId);
+                if (!sigData || !sigData.file) {
+                    throw new Error(`Signature file missing for ID: ${sigId}`);
+                }
+                if (!sigData.isProcessed && sigData.file.type !== 'image/png') {
+                    console.warn(`Signature ${sigData.name} was not processed for transparency. Embedding original.`);
+                }
+                const sigBytes = await readFileAsArrayBuffer(sigData.file);
+                let embeddedImage;
+                const fileType = sigData.file.type;
+                if (fileType === 'image/png') {
+                    embeddedImage = await pdfDoc.embedPng(sigBytes);
+                } else if (fileType === 'image/jpeg') {
+                    embeddedImage = await pdfDoc.embedJpg(sigBytes);
+                } else {
+                    console.warn(`Unsupported type ${fileType} for ${sigData.name}. Attempting PNG embed (may fail).`);
+                    try { embeddedImage = await pdfDoc.embedPng(sigBytes); }
+                    catch { throw new Error(`Cannot embed unsupported type: ${fileType}. Please use PNG/JPG or process first.`); }
+                }
+                embeddedSignatures[sigId] = embeddedImage;
+            }
+
+            for (const placement of placedSignatures) {
+                if (placement.pageNum < 0 || placement.pageNum >= pages.length) {
+                    console.warn(`Skipping placement for invalid page number: ${placement.pageNum}`);
+                    continue;
+                }
+                const page = pages[placement.pageNum];
+                const { width: pageWidthPt, height: pageHeightPt } = page.getSize();
+                const image = embeddedSignatures[placement.signatureId];
+                if (!image) continue;
+                const scaleX = pageWidthPt / renderedPageWidth;
+                const scaleY = pageHeightPt / renderedPageHeight;
+                const sigWidthPt = placement.widthPx * scaleX;
+                const sigHeightPt = placement.heightPx * scaleY;
+                const pdfX = placement.x * scaleX;
+                const pdfY = pageHeightPt - (placement.y * scaleY) - sigHeightPt;
+                page.drawImage(image, { x: pdfX, y: pdfY, width: sigWidthPt, height: sigHeightPt });
+            }
+
+            const modifiedPdfBytes = await pdfDoc.save();
+            const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none'; a.href = url;
+            a.download = `${pdfFile.name.replace(/\.pdf$/i, '')}_signed_clientside.pdf`;
+            document.body.appendChild(a); a.click();
+            window.URL.revokeObjectURL(url); document.body.removeChild(a);
+            setStatus('Signed PDF generated successfully!', 'success');
+            return; // done
+        }
+
+        // Mixed path: some pages rotated. Copy unrotated pages as vectors; rasterize only rotated pages upright.
+        if (!pdfDocProxy) {
+            throw new Error('PDF renderer not initialized. Please reload the PDF.');
+        }
+        console.log('Mixed path: rasterizing rotated pages only; copying unrotated pages as vectors.');
+
+        const outDoc = await PDFDocument.create();
+        for (let i = 0; i < pages.length; i++) {
+            const angle = rotations[i];
+            if (angle === 0) {
+                const [copied] = await outDoc.copyPages(pdfDoc, [i]);
+                outDoc.addPage(copied);
+            } else {
+                const srcPage = pages[i];
+                const { width: pageWidthPt, height: pageHeightPt } = srcPage.getSize();
+                const needsSwap = angle === 90 || angle === 270;
+                const normWidthPt = needsSwap ? pageHeightPt : pageWidthPt;
+                const normHeightPt = needsSwap ? pageWidthPt : pageHeightPt;
+
+                const pdfjsPage = await pdfDocProxy.getPage(i + 1);
+                const RASTER_SCALE = 2.0;
+                const viewport = pdfjsPage.getViewport({ scale: RASTER_SCALE });
+                const offCanvas = document.createElement('canvas');
+                const ctx = offCanvas.getContext('2d');
+                if (!ctx) throw new Error('Failed to get 2D context for offscreen render.');
+                offCanvas.width = viewport.width;
+                offCanvas.height = viewport.height;
+                await pdfjsPage.render({ canvasContext: ctx, viewport }).promise;
+
+                const dataUrl = offCanvas.toDataURL('image/png');
+                const pngBytes = dataURLtoUint8Array(dataUrl);
+                const embeddedPng = await outDoc.embedPng(pngBytes);
+                const newPage = outDoc.addPage([normWidthPt, normHeightPt]);
+                newPage.drawImage(embeddedPng, { x: 0, y: 0, width: normWidthPt, height: normHeightPt });
+            }
+        }
+
+        // Embed signatures into outDoc
+        const uniqueSignatureIds = [...new Set(placedSignatures.map(p => p.signatureId))];
+        const embeddedSignatures = {};
         for (const sigId of uniqueSignatureIds) {
             const sigData = uploadedSignatures.find(s => s.id === sigId);
             if (!sigData || !sigData.file) {
                 throw new Error(`Signature file missing for ID: ${sigId}`);
             }
-            // Ensure the signature has been processed if it wasn't originally a PNG
-            if (!sigData.isProcessed && sigData.file.type !== 'image/png') {
-                 // Optionally throw error, or try to process it now? Best to rely on user clicking the button.
-                 // For robustness, maybe try embedding directly but warn severely.
-                 console.warn(`Signature ${sigData.name} was not processed for transparency. Embedding original.`);
-                 // Or throw: throw new Error(`Signature ${sigData.name} needs transparency processing. Click the '✨' button.`);
-            }
-
-            const sigBytes = await readFileAsArrayBuffer(sigData.file); // Get bytes from File obj
+            const sigBytes = await readFileAsArrayBuffer(sigData.file);
             let embeddedImage;
-            const fileType = sigData.file.type; // Use the File object's type
-
-            // Embed based on type - pdf-lib handles transparency for PNG
+            const fileType = sigData.file.type;
             if (fileType === 'image/png') {
-                embeddedImage = await pdfDoc.embedPng(sigBytes);
+                embeddedImage = await outDoc.embedPng(sigBytes);
             } else if (fileType === 'image/jpeg') {
-                embeddedImage = await pdfDoc.embedJpg(sigBytes);
+                embeddedImage = await outDoc.embedJpg(sigBytes);
             } else {
-                 console.warn(`Unsupported type ${fileType} for ${sigData.name}. Attempting PNG embed (may fail).`);
-                 try {
-                     embeddedImage = await pdfDoc.embedPng(sigBytes); // Risky fallback
-                 } catch (embedError) {
-                     throw new Error(`Cannot embed unsupported type: ${fileType}. Please use PNG/JPG or process first.`);
-                 }
+                console.warn(`Unsupported type ${fileType} for ${sigData.name}. Attempting PNG embed (may fail).`);
+                try { embeddedImage = await outDoc.embedPng(sigBytes); }
+                catch { throw new Error(`Cannot embed unsupported type: ${fileType}. Please use PNG/JPG or process first.`); }
             }
             embeddedSignatures[sigId] = embeddedImage;
         }
 
-        // 4. Draw signatures onto pages
+        // Stamp signatures on outDoc with original mapping
         for (const placement of placedSignatures) {
-            if (placement.pageNum < 0 || placement.pageNum >= pages.length) {
+            if (placement.pageNum < 0 || placement.pageNum >= outDoc.getPageCount()) {
                 console.warn(`Skipping placement for invalid page number: ${placement.pageNum}`);
                 continue;
             }
-            const page = pages[placement.pageNum];
+            const page = outDoc.getPage(placement.pageNum);
             const { width: pageWidthPt, height: pageHeightPt } = page.getSize();
-
-            const embeddedImage = embeddedSignatures[placement.signatureId];
-            if (!embeddedImage) {
-                console.warn(`Skipping placement as embedded image for ${placement.signatureId} not found.`);
-                continue;
-            }
-
-            // Scale placement from rendered pixels to PDF points
+            const image = embeddedSignatures[placement.signatureId];
+            if (!image) continue;
             const scaleX = pageWidthPt / renderedPageWidth;
             const scaleY = pageHeightPt / renderedPageHeight;
             const sigWidthPt = placement.widthPx * scaleX;
             const sigHeightPt = placement.heightPx * scaleY;
-
-            // Calculate PDF Y coordinate (origin is bottom-left)
             const pdfX = placement.x * scaleX;
             const pdfY = pageHeightPt - (placement.y * scaleY) - sigHeightPt;
-
-            // Draw the image - pdf-lib handles PNG transparency automatically
-            page.drawImage(embeddedImage, {
-                x: pdfX,
-                y: pdfY,
-                width: sigWidthPt,
-                height: sigHeightPt,
-            });
+            page.drawImage(image, { x: pdfX, y: pdfY, width: sigWidthPt, height: sigHeightPt });
         }
 
-        // 5. Save the modified PDF document to bytes (Uint8Array)
-        const modifiedPdfBytes = await pdfDoc.save();
-
-        // 6. Trigger download
+        const modifiedPdfBytes = await outDoc.save();
         const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        // Suggest a filename indicating client-side generation
+        a.style.display = 'none'; a.href = url;
         a.download = `${pdfFile.name.replace(/\.pdf$/i, '')}_signed_clientside.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url); // Clean up blob URL
-        document.body.removeChild(a);   // Clean up link element
+        document.body.appendChild(a); a.click();
+        window.URL.revokeObjectURL(url); document.body.removeChild(a);
 
         setStatus('Signed PDF generated successfully!', 'success');
 
@@ -1058,6 +1124,16 @@ async function generateSignedPdfClientSide() {
         generateButton.disabled = false;
         updateButtonStates();
     }
+}
+
+// Helper for rasterization path
+function dataURLtoUint8Array(dataURL) {
+    const base64 = dataURL.split(',')[1];
+    const binaryString = atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+    return bytes;
 }
 
 
